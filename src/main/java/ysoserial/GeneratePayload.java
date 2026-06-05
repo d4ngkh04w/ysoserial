@@ -30,6 +30,61 @@ public class GeneratePayload {
 	}
 
 	public static void main(final String[] args) throws Exception {
+		// ---- relaunch to add-opens if needed ----
+		String version = System.getProperty("java.version");
+		if (version != null && !version.startsWith("1.")) {
+			if (System.getProperty("ysoserial.relaunch") == null) {
+				try {
+					String javaHome = System.getProperty("java.home");
+					String javaBin = javaHome + java.io.File.separator + "bin" + java.io.File.separator + "java";
+
+					java.util.List<String> command = new java.util.ArrayList<String>();
+					command.add(javaBin);
+					command.add("-Dysoserial.relaunch=true");
+
+					String[] opens = {
+						"--add-opens=java.base/java.lang=ALL-UNNAMED",
+						"--add-opens=java.base/java.util=ALL-UNNAMED",
+						"--add-opens=java.base/java.net=ALL-UNNAMED",
+						"--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+						"--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED",
+						"--add-opens=java.management/javax.management=ALL-UNNAMED",
+						"--add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.trax=ALL-UNNAMED",
+						"--add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.runtime=ALL-UNNAMED",
+						"--add-opens=java.xml/com.sun.org.apache.xml.internal.dtm=ALL-UNNAMED",
+						"--add-opens=java.xml/com.sun.org.apache.xml.internal.serializer=ALL-UNNAMED",
+						"--add-opens=java.rmi/sun.rmi.server=ALL-UNNAMED",
+						"--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED"
+					};
+					for (String open : opens) {
+						command.add(open);
+					}
+
+					String classPath = System.getProperty("java.class.path");
+					if (classPath != null && classPath.toLowerCase().endsWith(".jar") && !classPath.contains(java.io.File.pathSeparator)) {
+						command.add("-jar");
+						command.add(classPath);
+					} else {
+						command.add("-cp");
+						command.add(classPath);
+						command.add(GeneratePayload.class.getName());
+					}
+
+					for (String arg : args) {
+						command.add(arg);
+					}
+
+					ProcessBuilder pb = new ProcessBuilder(command);
+					pb.inheritIO();
+					Process p = pb.start();
+					p.waitFor();
+					System.exit(p.exitValue());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
 		// ---- parse flags ----
 		String payloadType  = null;
 		String command      = null;

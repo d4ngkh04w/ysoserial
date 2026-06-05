@@ -5,6 +5,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
+import sun.misc.Unsafe;
 import sun.reflect.ReflectionFactory;
 
 import com.nqzero.permit.Permit;
@@ -73,6 +74,25 @@ public class Reflections {
         Constructor<?> sc = ReflectionFactory.getReflectionFactory().newConstructorForSerialization(classToInstantiate, objCons);
 	    setAccessible(sc);
         return (T)sc.newInstance(consArgs);
+    }
+
+    public static Unsafe getUnsafe() throws Exception {
+        Field f = Unsafe.class.getDeclaredField("theUnsafe");
+        f.setAccessible(true);
+        return (Unsafe) f.get(null);
+    }
+
+    /**
+     * Sets a field value using sun.misc.Unsafe, bypassing all JVM type checks.
+     * Required for Java 21+ where some fields were narrowed in type
+     * (e.g. BadAttributeValueExpException.val changed from Object to String),
+     * causing normal Field.set() to throw IllegalArgumentException even with
+     * accessibility granted via --add-opens.
+     */
+    public static void unsafeSetFieldValue(final Object obj, final String fieldName, final Object value) throws Exception {
+        final Field field = getField(obj.getClass(), fieldName);
+        Unsafe unsafe = getUnsafe();
+        unsafe.putObject(obj, unsafe.objectFieldOffset(field), value);
     }
 
 }
