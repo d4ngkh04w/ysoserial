@@ -20,11 +20,16 @@ public class GeneratePayload {
 
 		public static OutputFormat fromString(String s) {
 			switch (s.toLowerCase()) {
-				case "raw":    return RAW;
-				case "base64": return BASE64;
-				case "hex":    return HEX;
-				case "url":    return URL;
-				default:       return null;
+				case "raw":
+					return RAW;
+				case "base64":
+					return BASE64;
+				case "hex":
+					return HEX;
+				case "url":
+					return URL;
+				default:
+					return null;
 			}
 		}
 	}
@@ -43,25 +48,37 @@ public class GeneratePayload {
 					command.add("-Dysoserial.relaunch=true");
 
 					String[] opens = {
-						"--add-opens=java.base/java.lang=ALL-UNNAMED",
-						"--add-opens=java.base/java.util=ALL-UNNAMED",
-						"--add-opens=java.base/java.net=ALL-UNNAMED",
-						"--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
-						"--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED",
-						"--add-opens=java.management/javax.management=ALL-UNNAMED",
-						"--add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.trax=ALL-UNNAMED",
-						"--add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.runtime=ALL-UNNAMED",
-						"--add-opens=java.xml/com.sun.org.apache.xml.internal.dtm=ALL-UNNAMED",
-						"--add-opens=java.xml/com.sun.org.apache.xml.internal.serializer=ALL-UNNAMED",
-						"--add-opens=java.rmi/sun.rmi.server=ALL-UNNAMED",
-						"--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED"
+							"--add-opens=java.base/java.lang=ALL-UNNAMED",
+							"--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+							"--add-opens=java.base/java.util=ALL-UNNAMED",
+							"--add-opens=java.base/java.net=ALL-UNNAMED",
+							"--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+							"--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED",
+							"--add-opens=java.management/javax.management=ALL-UNNAMED",
+							"--add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.trax=ALL-UNNAMED",
+							"--add-opens=java.xml/com.sun.org.apache.xalan.internal.xsltc.runtime=ALL-UNNAMED",
+							"--add-opens=java.xml/com.sun.org.apache.xml.internal.dtm=ALL-UNNAMED",
+							"--add-opens=java.xml/com.sun.org.apache.xml.internal.serializer=ALL-UNNAMED",
+							"--add-opens=java.rmi/sun.rmi.server=ALL-UNNAMED",
+							"--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED",
 					};
 					for (String open : opens) {
 						command.add(open);
 					}
 
+					// Java 23+ supports --sun-misc-unsafe-memory-access=allow to suppress
+					// the "terminally deprecated" warning from sun.misc.Unsafe methods.
+					try {
+						int jv = Integer.parseInt(version.split("\\.")[0]);
+						if (jv >= 23) {
+							command.add("--sun-misc-unsafe-memory-access=allow");
+						}
+					} catch (NumberFormatException ignored) {
+					}
+
 					String classPath = System.getProperty("java.class.path");
-					if (classPath != null && classPath.toLowerCase().endsWith(".jar") && !classPath.contains(java.io.File.pathSeparator)) {
+					if (classPath != null && classPath.toLowerCase().endsWith(".jar")
+							&& !classPath.contains(java.io.File.pathSeparator)) {
 						command.add("-jar");
 						command.add(classPath);
 					} else {
@@ -86,9 +103,9 @@ public class GeneratePayload {
 		}
 
 		// ---- parse flags ----
-		String payloadType  = null;
-		String command      = null;
-		String searchTerm   = null;
+		String payloadType = null;
+		String command = null;
+		String searchTerm = null;
 		OutputFormat format = OutputFormat.RAW;
 
 		List<String> positional = new ArrayList<String>();
@@ -131,7 +148,7 @@ public class GeneratePayload {
 			System.exit(USAGE_CODE);
 		}
 		payloadType = positional.get(0);
-		command     = positional.get(1);
+		command = positional.get(1);
 
 		final Class<? extends ObjectPayload> payloadClass = Utils.getPayloadClass(payloadType);
 		if (payloadClass == null) {
@@ -191,23 +208,24 @@ public class GeneratePayload {
 	private static void printSearch(String term) {
 		System.err.println("Search results for: \"" + term + "\"");
 
-		final List<Class<? extends ObjectPayload>> payloadClasses =
-			new ArrayList<Class<? extends ObjectPayload>>(ObjectPayload.Utils.getPayloadClasses());
+		final List<Class<? extends ObjectPayload>> payloadClasses = new ArrayList<Class<? extends ObjectPayload>>(
+				ObjectPayload.Utils.getPayloadClasses());
 		Collections.sort(payloadClasses, new Strings.ToStringComparator());
 
 		final List<String[]> rows = new LinkedList<String[]>();
-		rows.add(new String[] {"Payload", "Authors", "Dependencies"});
-		rows.add(new String[] {"-------", "-------", "------------"});
+		rows.add(new String[] { "Payload", "Authors", "Dependencies" });
+		rows.add(new String[] { "-------", "-------", "------------" });
 
 		String lowerTerm = term.toLowerCase();
 		boolean found = false;
 		for (Class<? extends ObjectPayload> pc : payloadClasses) {
 			String name = pc.getSimpleName();
-			if (name.toLowerCase().contains(lowerTerm)) {
+			String deps = Strings.join(Arrays.asList(Dependencies.Utils.getDependenciesSimple(pc)), ", ", "", "");
+			if (name.toLowerCase().contains(lowerTerm) || deps.toLowerCase().contains(lowerTerm)) {
 				rows.add(new String[] {
-					name,
-					Strings.join(Arrays.asList(Authors.Utils.getAuthors(pc)), ", ", "@", ""),
-					Strings.join(Arrays.asList(Dependencies.Utils.getDependenciesSimple(pc)), ", ", "", "")
+						name,
+						Strings.join(Arrays.asList(Authors.Utils.getAuthors(pc)), ", ", "@", ""),
+						deps
 				});
 				found = true;
 			}
@@ -241,24 +259,24 @@ public class GeneratePayload {
 		System.err.println();
 		System.err.println("  Available payload types:");
 
-		final List<Class<? extends ObjectPayload>> payloadClasses =
-			new ArrayList<Class<? extends ObjectPayload>>(ObjectPayload.Utils.getPayloadClasses());
+		final List<Class<? extends ObjectPayload>> payloadClasses = new ArrayList<Class<? extends ObjectPayload>>(
+				ObjectPayload.Utils.getPayloadClasses());
 		Collections.sort(payloadClasses, new Strings.ToStringComparator());
 
-        final List<String[]> rows = new LinkedList<String[]>();
-        rows.add(new String[] {"Payload", "Authors", "Dependencies"});
-        rows.add(new String[] {"-------", "-------", "------------"});
-        for (Class<? extends ObjectPayload> payloadClass : payloadClasses) {
-             rows.add(new String[] {
-                payloadClass.getSimpleName(),
-                Strings.join(Arrays.asList(Authors.Utils.getAuthors(payloadClass)), ", ", "@", ""),
-                Strings.join(Arrays.asList(Dependencies.Utils.getDependenciesSimple(payloadClass)),", ", "", "")
-            });
-        }
+		final List<String[]> rows = new LinkedList<String[]>();
+		rows.add(new String[] { "Payload", "Authors", "Dependencies" });
+		rows.add(new String[] { "-------", "-------", "------------" });
+		for (Class<? extends ObjectPayload> payloadClass : payloadClasses) {
+			rows.add(new String[] {
+					payloadClass.getSimpleName(),
+					Strings.join(Arrays.asList(Authors.Utils.getAuthors(payloadClass)), ", ", "@", ""),
+					Strings.join(Arrays.asList(Dependencies.Utils.getDependenciesSimple(payloadClass)), ", ", "", "")
+			});
+		}
 
-        final List<String> lines = Strings.formatTable(rows);
-        for (String line : lines) {
-            System.err.println("     " + line);
-        }
-    }
+		final List<String> lines = Strings.formatTable(rows);
+		for (String line : lines) {
+			System.err.println("     " + line);
+		}
+	}
 }

